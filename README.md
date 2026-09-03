@@ -108,4 +108,4 @@ ComfyUI graph JSON files may depend on exact model filenames, node versions, and
 
 ## License
 
-No license has been declared yet. Add a license before redistributing these workflows.
+MIT License
