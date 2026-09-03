@@ -1,0 +1,396 @@
+{
+  "name": "Image Content Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        -272
+      ],
+      "id": "859fc153-6536-4219-947b-6759a4658cce",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/api/generate",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"qwen3-coder:480b-cloud\",\n  \"prompt\": \"Generate a creative social media post idea about [YOUR NICHE]. Give me: 1) A detailed image prompt for Stable Diffusion 2) An Instagram caption with hashtags 3) A Facebook post description. Format as JSON with keys: image_prompt, instagram_caption, facebook_description\",\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -208,
+        -272
+      ],
+      "id": "da7e610e-03de-4151-9b84-34431324e5a9",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json.response;\n// Extract JSON from Ollama's text response\nconst jsonMatch = response.match(/\\{[\\s\\S]*\\}/);\nconst parsed = JSON.parse(jsonMatch[0]);\nreturn [{\n  json: {\n    image_prompt: parsed.image_prompt,\n    instagram_caption: parsed.instagram_caption,\n    facebook_description: parsed.facebook_description\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -272
+      ],
+      "id": "98c5eae3-a51c-421d-aa9e-32af926de781",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8188/prompt",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": {\n    \"3\": {\n      \"inputs\": {\n        \"seed\": 156680208700286,\n        \"steps\": 20,\n        \"cfg\": 8,\n        \"sampler_name\": \"euler\",\n        \"scheduler\": \"normal\",\n        \"denoise\": 1,\n        \"model\": [\"4\", 0],\n        \"positive\": [\"6\", 0],\n        \"negative\": [\"7\", 0],\n        \"latent_image\": [\"5\", 0]\n      },\n      \"class_type\": \"KSampler\"\n    },\n    \"4\": {\n      \"inputs\": {\n        \"ckpt_name\": \"v1-5-pruned-emaonly.ckpt\"\n      },\n      \"class_type\": \"CheckpointLoaderSimple\"\n    },\n    \"5\": {\n      \"inputs\": {\n        \"width\": 512,\n        \"height\": 512,\n        \"batch_size\": 1\n      },\n      \"class_type\": \"EmptyLatentImage\"\n    },\n    \"6\": {\n      \"inputs\": {\n        \"text\": \"={{ $('Code in JavaScript').item.json.image_prompt }}\",\n        \"clip\": [\"4\", 1]\n      },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"7\": {\n      \"inputs\": {\n        \"text\": \"text, watermark, blurry, ugly, bad quality\",\n        \"clip\": [\"4\", 1]\n      },\n      \"class_type\": \"CLIPTextEncode\"\n    },\n    \"8\": {\n      \"inputs\": {\n        \"samples\": [\"3\", 0],\n        \"vae\": [\"4\", 2]\n      },\n      \"class_type\": \"VAEDecode\"\n    },\n    \"9\": {\n      \"inputs\": {\n        \"filename_prefix\": \"n8n_output\",\n        \"images\": [\"8\", 0]\n      },\n      \"class_type\": \"SaveImage\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        -272
+      ],
+      "id": "bfb6f310-37f7-4339-a88d-0b8c48c27b77",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:8188/history",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        576,
+        -272
+      ],
+      "id": "b69a1ffe-82d3-421d-8ec6-cd5b0383410d",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const history = $input.first().json;\n// Get the last generated image filename\nconst promptId = Object.keys(history)[0];\nconst outputs = history[promptId].outputs;\nconst imageData = outputs[\"9\"].images[0];\n\nreturn [{\n  json: {\n    filename: imageData.filename,\n    filepath: `C:\\\\Users\\\\adity\\\\OneDrive\\\\Documents\\\\Aditya\\\\Agents\\\\n8n\\\\ComfyUI_windows_portable\\\\ComfyUI\\\\output\\\\${imageData.filename}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        -272
+      ],
+      "id": "63772151-4076-42b0-a850-cf83ff2657bf",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.filepath }}",
+        "options": {
+          "dataPropertyName": "imageData"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        928,
+        -272
+      ],
+      "id": "c6bab0ee-4a4c-4ab7-8344-cbcb48100bee",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        -272
+      ],
+      "id": "ebfe830d-7e21-42d2-9606-5bff8484e9c8",
+      "name": "Wait",
+      "webhookId": "d7190b6f-759b-427e-be6a-5213a96f7a21"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.imgbb.com/1/upload",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "af267e7a1a22ca843b152ed835d1abbf"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "image",
+              "inputDataFieldName": "imageData"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1136,
+        -272
+      ],
+      "id": "088b60f0-e471-47ad-a223-dad6cfde1db3",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const imgbbResponse = $input.first().json;\n\n// Try all possible URL locations in imgbb response\nconst publicUrl = imgbbResponse.data?.image?.url \n  || imgbbResponse.data?.display_url \n  || imgbbResponse.data?.url;\n\n// Clean the URL - remove any leading = signs\nconst cleanUrl = publicUrl.replace(/^=+/, '');\n\nreturn [{\n  json: {\n    image_url: cleanUrl,\n    instagram_caption: $('Code in JavaScript').item.json.instagram_caption,\n    facebook_description: $('Code in JavaScript').item.json.facebook_description\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -272
+      ],
+      "id": "bd8d9dec-fd81-4fd8-a5af-56c9d3875001",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841475507362376/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.instagram_caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "=EAAWZBoauu8xIBRpHsv6969Fp5xuGoAfIlyfMaF1YlHXejexk6AoWdYfSdFsT99gXudaZBVjkiwTD9VZBvVIyDPbMenzmb4EwFZCsQg1EGwggo92OkMWoIHtlVDG19LBWSuZCfoUVfSVZADGDtWZCDKOs8K2KSxQRvXSKseOTs1o5ZCAAYUrZAurx207ZCroL8vVenMf8Fg2fZBeudnVxy9Td2BjTBbHvLjOpOx2YyumnYFZAB8ktn5SHK8dJDDFZAOW9TAH5y0p3r85jEkm5tth8ZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1552,
+        -272
+      ],
+      "id": "8e0dc12f-de64-47d3-9223-52fe55c88b02",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1728,
+        -272
+      ],
+      "id": "66ff5095-8530-4d1d-a5b0-a08d243c4f82",
+      "name": "Wait1",
+      "webhookId": "070402d8-cdd8-42f0-b0af-d8be2afeb64f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v18.0/17841475507362376/media_publish",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAWZBoauu8xIBRpHsv6969Fp5xuGoAfIlyfMaF1YlHXejexk6AoWdYfSdFsT99gXudaZBVjkiwTD9VZBvVIyDPbMenzmb4EwFZCsQg1EGwggo92OkMWoIHtlVDG19LBWSuZCfoUVfSVZADGDtWZCDKOs8K2KSxQRvXSKseOTs1o5ZCAAYUrZAurx207ZCroL8vVenMf8Fg2fZBeudnVxy9Td2BjTBbHvLjOpOx2YyumnYFZAB8ktn5SHK8dJDDFZAOW9TAH5y0p3r85jEkm5tth8ZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1936,
+        -272
+      ],
+      "id": "945c427c-7bf2-4f8b-9d82-82907714548b",
+      "name": "HTTP Request5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d3cd4588-9127-40a9-ae47-b3b81b57b687",
+  "meta": {
+    "instanceId": "2aeabbad6373a81a0a3e1fe24525623f1ed31f8e287e198609827a14ff745d9a"
+  },
+  "nodeGroups": [],
+  "id": "x5DOqVU0vDChpPpi",
+  "tags": []
+}

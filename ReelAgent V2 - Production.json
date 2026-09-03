@@ -1,0 +1,441 @@
+{
+  "name": "ReelAgent V2 - Production",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst baseDir = \"/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent\";\nconst historyPath = path.join(baseDir, \"output\", \"history.txt\");\n\n// Master curriculum list of 100 educational/productivity topics.\nconst topics = [\n    \"The Pomodoro Technique\", \"Active Recall Studying\", \"Spaced Repetition\",\n    \"Dopamine Detox Protocols\", \"The Feynman Technique\", \"Digital Minimalism\",\n    \"Stoicism for Exam Stress\", \"Morning Routines for Focus\", \"Time Blocking Schedules\",\n    \"The Eisenhower Matrix\", \"Overcoming Procrastination\", \"Habit Stacking\",\n    \"Flow State Triggers\", \"Sleep Hygiene for Memory\", \"Nutrition for Brain Fog\",\n    \"Zettelkasten Note-Taking\", \"Goal Setting Frameworks\", \"Beating Academic Burnout\",\n    \"Speed Reading Strategies\", \"Test Anxiety Management\", \"Deep Work Principles\",\n    \"The 80/20 Rule for Studying\", \"Building Daily Discipline\", \"Meditation for Focus\",\n    \"First Principles Thinking\", \"The 5-Second Rule for Studying\", \"Parkinson's Law in Exams\",\n    \"Cornell Note-Taking Method\", \"Mind Mapping for Essays\", \"The SQ3R Reading Method\",\n    \"Interleaving Practice\", \"Dual Coding Theory\", \"The Blurting Method\",\n    \"Managing Perfectionism\", \"The 2-Minute Rule\", \"Eat the Frog Productivity\",\n    \"Energy Management vs Time\", \"The Zeigarnik Effect\", \"Building a Second Brain\",\n    \"Digital Decluttering\", \"The 4-Quarters Framework\", \"Ultradian Rhythms for Focus\",\n    \"Strategic Quitting\", \"The Law of Diminishing Returns\", \"Constructive Procrastination\",\n    \"Gamifying Your Studies\", \"The Protégé Effect\", \"Frictionless Environment Design\",\n    \"Stoic Journaling for Students\", \"The 1% Better Rule\", \"Curing TikTok Brain\",\n    \"Reading a Book a Week\", \"Memorization Palaces\", \"Mnemonic Devices\",\n    \"The Reticular Activating System\", \"Reverse Engineering Goals\", \"SMART Goals for Students\",\n    \"The WOOP Strategy\", \"Dealing with Academic Failure\", \"The Growth Mindset\",\n    \"Fixed vs Growth Mindset\", \"Neuroplasticity for Learning\", \"Circadian Rhythms and Studying\",\n    \"Caffeine Strategic Timing\", \"Hydration and Cognitive Function\", \"Cold Showers for Alertness\",\n    \"The Huberman Protocol\", \"Binaural Beats for Studying\", \"Lofi vs White Noise\",\n    \"Active Listening in Lectures\", \"The Socratic Method\", \"Critical Thinking Frameworks\",\n    \"Mental Models for Students\", \"The OODA Loop\", \"Pareto Principle in Research\",\n    \"Speed Reading Myths\", \"Subvocalization and Reading\", \"Visualizing Academic Success\",\n    \"The Halo Effect in Grading\", \"Overcoming Writer's Block\", \"Drafting vs Editing\",\n    \"Task Batching\", \"Context Switching Penalties\", \"The Maker vs Manager Schedule\",\n    \"Asynchronous Communication\", \"Setting Boundaries with Peers\", \"Navigating Group Projects\",\n    \"The Art of Saying No\", \"Micro-Habits for Students\", \"The Seinfeld Strategy\",\n    \"Don't Break the Chain\", \"Temptation Bundling\", \"Implementation Intentions\",\n    \"Habit Tracking Systems\", \"The Dunning-Kruger Effect\", \"Confirmation Bias in Research\",\n    \"First-Order vs Second-Order Thinking\", \"Inversion Problem Solving\", \"Occam's Razor for Students\",\n    \"Opportunity Cost in College\"\n];\n\nlet history = \"\";\nif (fs.existsSync(historyPath)) {\n    history = fs.readFileSync(historyPath, 'utf-8');\n}\n\n// Filter out topics that have already been generated in your history file\nconst availableTopics = topics.filter(topic => !history.includes(\"- \" + topic));\n\n// The machine MUST halt when it runs out.\nif (availableTopics.length === 0) {\n    throw new Error(\"PRODUCTION HALT: All 100 topics are used. You must add new topics to the JavaScript node array to continue.\");\n}\n\n// Pick a RANDOM topic from the remaining available topics\nconst randomIndex = Math.floor(Math.random() * availableTopics.length);\nconst assignedTopic = availableTopics[randomIndex];\n\nreturn [{ json: { assigned_topic: assignedTopic } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "470db22b-0153-47ca-8950-7a8ab33bd99f",
+      "name": "Code in JavaScript",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "ornith-1.5:9b",
+          "mode": "list",
+          "cachedResultName": "ornith-1.5:9b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Generate a 7-point educational checklist specifically about this exact topic: {{ $json.assigned_topic }}\n\nRules:\n1. Output ONLY the raw text lines. No introductions, no greetings.\n2. The first line must be a short Title that includes the exact words: {{ $json.assigned_topic }}\n3. Generate exactly 7 numbered educational points below it.\n4. Keep points 1 through 7 under 8 words each so they fit on screen.\n5. Separate the title and each numbered point with exactly one newline character (\\n).\n6. The 8th point MUST be exactly: \"8. If you aren't following us, you will never see us again.\"\n7. IMMEDIATELY after the 8th point, you must print this exact delimiter on a new line: ===CAPTION===\n8. Below the delimiter, write a highly engaging 2-sentence Instagram caption about the topic, followed by 5 relevant hashtags.\n\nExample format:\nMastering {{ $json.assigned_topic }}\n1. Clear your physical desk\n2. Turn on airplane mode\n3. Use a physical timer\n4. Focus for 90 minutes\n5. Take a walking break\n6. Drink only water\n7. Stop before you exhaust\n8. If you aren't following us, you will never see us again.\n===CAPTION===\nStruggling to maintain your focus? Here is the exact protocol to master your deep work and get more done in less time. Drop a 🚀 if you are trying this today! #deepwork #focus #studyhacks #productivity #studentlife"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        608,
+        0
+      ],
+      "id": "35a7a5f4-85b1-4991-9ffa-130af45ff62e",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "ollamaApi": {
+          "id": "Ur3j2d8tSuynNDNM",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst baseDir = \"/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent\";\nconst textFilePath = path.join(baseDir, \"output\", \"current_text.txt\");\nconst historyPath = path.join(baseDir, \"output\", \"history.txt\");\n\n// Target the native node's content output\nconst ollamaText = $input.item.json.content || \"\";\n\ntry {\n    const parts = ollamaText.split('===CAPTION===');\n    if (parts.length < 2) {\n        throw new Error(\"FATAL: AI failed to generate the CAPTION delimiter.\");\n    }\n\n    const videoText = parts[0].trim();\n    const igCaption = parts[1].trim();\n\n    const lines = videoText.split('\\n').filter(line => line.trim() !== '');\n    if (lines.length === 0) {\n        throw new Error(\"AI returned empty video text.\");\n    }\n    const newTitle = lines[0].trim();\n\n    // Save text for rendering\n    fs.writeFileSync(textFilePath, videoText, 'utf-8');\n    fs.appendFileSync(historyPath, \"- \" + $node[\"Code in JavaScript\"].json.assigned_topic + \"\\n\", 'utf-8');\n\n    // Create a unique abstract background concept for ComfyUI\n    const visualPrompt = `Minimalist dark abstract geometric background, clean lines, subtle cinematic lighting, high tech aesthetic representing ${newTitle}`;\n\n    return [{ \n        json: { \n            status: \"success\", \n            title: newTitle, \n            caption: igCaption, \n            topic: $node[\"Code in JavaScript\"].json.assigned_topic,\n            comfy_prompt: visualPrompt\n        } \n    }];\n} catch (error) {\n    return [{ json: { status: \"error\", message: error.message } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "6d77743b-9f85-4de4-a0ee-e354e80ae7f2",
+      "name": "Code in JavaScript1",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst baseDir = \"/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent\";\nconst apiFilePath = path.join(baseDir, \"background_api.json\");\n\n// 1. Read your saved ComfyUI workflow template\nlet comfyWorkflow = JSON.parse(fs.readFileSync(apiFilePath, 'utf-8'));\n\n// 2. Inject our dynamic prompt into Node 6 (the positive prompt block)\ncomfyWorkflow[\"6\"].inputs.text = $input.item.json.comfy_prompt;\n\n// 3. Randomize the seed in Node 3 (the KSampler) so the image is unique every time\ncomfyWorkflow[\"3\"].inputs.seed = Math.floor(Math.random() * 1000000000000);\n\n// 4. Pass the modified workflow forward inside the required \"prompt\" wrapper\nreturn [{ \n    json: { \n        ...$input.item.json, // Keep our title, caption, etc.\n        comfy_payload: { prompt: comfyWorkflow } \n    } \n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1168,
+        0
+      ],
+      "id": "20159e98-4953-40b6-b22a-5650bbbad583",
+      "name": "Code in JavaScript2",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8188/prompt",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.comfy_payload) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "17eadf04-5aab-49d2-99d5-3825276e7c5a",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const { exec } = require('child_process');\nconst path = require('path');\n\nconst baseDir = \"/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent\";\nconst scriptPath = path.join(baseDir, \"generator_v2.py\");\n\nreturn new Promise((resolve, reject) => {\n    console.log(\"Launching Python Director Script asynchronously...\");\n    const command = `python \"${scriptPath}\"`;\n    \n    // Using async 'exec' instead of blocking 'execSync'\n    exec(command, (error, stdout, stderr) => {\n        if (error) {\n            // If Python fails, we catch it gracefully without crashing n8n\n            resolve([{ json: { status: \"error\", message: error.message, log: stderr } }]);\n            return;\n        }\n        \n        // Pass along the success status and meta data from the previous chain\n        resolve([{ \n            json: { \n                status: \"success\", \n                title: $node[\"Code in JavaScript1\"].json.title,\n                caption: $node[\"Code in JavaScript1\"].json.caption,\n                file_path: path.join(baseDir, \"output\", \"final_reel_v2.mp4\")\n            } \n        }]);\n    });\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        0
+      ],
+      "id": "6aef1c12-b607-4e71-85c0-eeafe0b128c0",
+      "name": "Code in JavaScript3",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.file_path }}",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        0
+      ],
+      "id": "9f981e69-6431-45e9-988a-38c43b6fbb53",
+      "name": "Read/Write Files from Disk",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $node[\"Code in JavaScript3\"].json.title }}",
+        "options": {
+          "description": "={{ $node[\"Code in JavaScript3\"].json.caption }}",
+          "privacyStatus": "public"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        0
+      ],
+      "id": "8fc38ba2-0956-4077-b6a6-2dfe8c38df6b",
+      "name": "Upload a video",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "uU7Tb86j6Lf18LFH",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v25.0/17841475507362376/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "video_url",
+              "value": "=https://christie-approbative-genevieve.ngrok-free.dev/final_reel_v2.mp4?v={{ $now.toMillis() }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $node[\"Code in JavaScript3\"].json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAWZBoauu8xIBRguZCtZCeE1ZCmmy9KZClKNTLcqvHEEPkGp32GwE8rwPaPUZBnaZAMLNS87RFzxKXR633PdsIA36Jn2ONB8XLo3ITrez28BmBTWmPkuqtN9vbe4kfAgoXFRSiu73XOvZAu5LrKm8jDfd05pY0H0ZCZAYRZCeWa156DQNVd6wdtQqRmtbyoVaCLd8ueLAZDZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2208,
+        0
+      ],
+      "id": "8cf9c60a-02a1-444d-b33b-923389e20c99",
+      "name": "HTTP Request1",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 180
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2416,
+        0
+      ],
+      "id": "c304c2ed-f516-4adc-bca2-99ad4870dac4",
+      "name": "Wait",
+      "webhookId": "bed9cb53-8393-4d3d-a4ab-99086e90c174",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v25.0/17841475507362376/media_publish",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $node[\"HTTP Request1\"].json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAWZBoauu8xIBRguZCtZCeE1ZCmmy9KZClKNTLcqvHEEPkGp32GwE8rwPaPUZBnaZAMLNS87RFzxKXR633PdsIA36Jn2ONB8XLo3ITrez28BmBTWmPkuqtN9vbe4kfAgoXFRSiu73XOvZAu5LrKm8jDfd05pY0H0ZCZAYRZCeWa156DQNVd6wdtQqRmtbyoVaCLd8ueLAZDZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2624,
+        0
+      ],
+      "id": "2e5db2f5-c8c0-4ea6-8fdb-db0e709e913b",
+      "name": "HTTP Request2",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "path": "trigger-reel-production",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "07087cee-7fb1-40b3-b0a8-43db2d7ea386",
+      "name": "Webhook",
+      "webhookId": "ccf1e696-e19e-4517-8088-8446a64d117a"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "4638321f-a7d1-4d28-ab23-e66abc208f83",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "accept-encoding": "identity",
+            "host": "localhost:5678",
+            "user-agent": "Python-urllib/3.11",
+            "connection": "close"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "http://localhost:5678/webhook/trigger-reel-production",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Upload a video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a video": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "87b5e394-986b-4ebd-9e6c-5672ccf0746c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2aeabbad6373a81a0a3e1fe24525623f1ed31f8e287e198609827a14ff745d9a"
+  },
+  "nodeGroups": [],
+  "id": "AlHUszVvk9FWvpoG",
+  "tags": []
+}

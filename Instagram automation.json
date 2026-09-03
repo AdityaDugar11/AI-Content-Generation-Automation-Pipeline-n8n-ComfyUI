@@ -1,0 +1,341 @@
+{
+  "name": "Instagram automation",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "ornith-1.5:9b",
+          "mode": "list",
+          "cachedResultName": "ornith-1.5:9b"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Generate a 7-point educational checklist specifically about this exact topic: {{ $json.assigned_topic }}\n\nRules:\n1. Output ONLY the raw text lines. No introductions, no greetings.\n2. The first line must be a short Title that includes the exact words: {{ $json.assigned_topic }}\n3. Generate exactly 7 numbered educational points below it.\n4. Keep points 1 through 7 under 8 words each so they fit on screen.\n5. Separate the title and each numbered point with exactly one newline character (\\n).\n6. The 8th point MUST be exactly: \"8. If you aren't following us, you will never see us again.\"\n7. IMMEDIATELY after the 8th point, you must print this exact delimiter on a new line: ===CAPTION===\n8. Below the delimiter, write a highly engaging 2-sentence Instagram caption about the topic, followed by 5 relevant hashtags.\n\nExample format:\nMastering {{ $json.assigned_topic }}\n1. Clear your physical desk\n2. Turn on airplane mode\n3. Use a physical timer\n4. Focus for 90 minutes\n5. Take a walking break\n6. Drink only water\n7. Stop before you exhaust\n8. If you aren't following us, you will never see us again.\n===CAPTION===\nStruggling to maintain your focus? Here is the exact protocol to master your deep work and get more done in less time. Drop a 🚀 if you are trying this today! #deepwork #focus #studyhacks #productivity #studentlife"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        -1056,
+        -352
+      ],
+      "id": "16bcc53f-6446-4026-a48b-71d33bb62355",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "credentials": {
+        "ollamaApi": {
+          "id": "Ur3j2d8tSuynNDNM",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { execSync } = require('child_process');\nconst fs = require('fs');\nconst path = require('path');\n\nconst baseDir = \"/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent\";\nconst textFilePath = path.join(baseDir, \"output\", \"current_text.txt\");\nconst historyPath = path.join(baseDir, \"output\", \"history.txt\");\n\nconst ollamaText = $input.item.json.content || \"\";\n\ntry {\n    // 1. SPLIT THE DATA: Find the barrier and chop the text in two\n    const parts = ollamaText.split('===CAPTION===');\n    if (parts.length < 2) {\n        throw new Error(\"FATAL: AI failed to generate the CAPTION delimiter. Workflow killed.\");\n    }\n\n    const videoText = parts[0].trim();\n    const igCaption = parts[1].trim();\n\n    // 2. Extract the Title for the Kill Switch\n    const lines = videoText.split('\\n').filter(line => line.trim() !== '');\n    if (lines.length === 0) {\n        throw new Error(\"AI returned an empty string for the video text.\");\n    }\n    const newTitle = lines[0].trim();\n\n    // 3. THE KILL SWITCH: Check for duplicates\n    let history = \"\";\n    if (fs.existsSync(historyPath)) {\n        history = fs.readFileSync(historyPath, 'utf-8');\n    }\n    if (history.includes(\"- \" + newTitle)) {\n        throw new Error(`FATAL: The AI generated a duplicate title (\"${newTitle}\"). Workflow killed.`);\n    }\n\n    // 4. Write ONLY the video text for Python to render\n    fs.writeFileSync(textFilePath, videoText, 'utf-8');\n\n    // 5. Append the new Title to memory\n    fs.appendFileSync(historyPath, \"- \" + newTitle + \"\\n\", 'utf-8');\n\n    // 6. Run the Python rendering script (UPDATED FOR LINUX)\n    const command = `python3 \"${path.join(baseDir, \"generator.py\")}\"`;\n    const stdout = execSync(command).toString();\n\n    // 7. Pass the generated IG caption AND the title forward\n    return [{ json: { status: \"success\", title: newTitle, caption: igCaption, file: \"final_reel.mp4\" } }];\n} catch (error) {\n    // THIS STOPS THE WORKFLOW DEAD IN ITS TRACKS\n    throw new Error(\"Execution halted: \" + error.message);\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -784,
+        -352
+      ],
+      "id": "52156ef9-f600-4a32-8837-d1cae700318d",
+      "name": "Code in JavaScript",
+      "retryOnFail": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "jsCode": "const fs = require('fs');\nconst path = require('path');\n\nconst historyPath = \"/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent/output/history.txt\";\n\n// The hardcoded curriculum. The AI can ONLY pick from this list.\nconst topics = [\n    \"The Pomodoro Technique\", \"Active Recall Studying\", \"Spaced Repetition\",\n    \"Dopamine Detox Protocols\", \"The Feynman Technique\", \"Digital Minimalism\",\n    \"Stoicism for Exam Stress\", \"Morning Routines for Focus\", \"Time Blocking Schedules\",\n    \"The Eisenhower Matrix\", \"Overcoming Procrastination\", \"Habit Stacking\",\n    \"Flow State Triggers\", \"Sleep Hygiene for Memory\", \"Nutrition for Brain Fog\",\n    \"Zettelkasten Note-Taking\", \"Goal Setting Frameworks\", \"Beating Academic Burnout\",\n    \"Speed Reading Strategies\", \"Test Anxiety Management\", \"Deep Work Principles\",\n    \"The 80/20 Rule for Studying\", \"Building Daily Discipline\", \"Meditation for Focus\",\n    \"First Principles Thinking\", \"The 5-Second Rule for Studying\", \"Parkinson's Law in Exams\",\n    \"Cornell Note-Taking Method\", \"Mind Mapping for Essays\", \"The SQ3R Reading Method\",\n    \"Interleaving Practice\", \"Dual Coding Theory\", \"The Blurting Method\",\n    \"Managing Perfectionism\", \"The 2-Minute Rule\", \"Eat the Frog Productivity\",\n    \"Energy Management vs Time\", \"The Zeigarnik Effect\", \"Building a Second Brain\",\n    \"Digital Decluttering\", \"The 4-Quarters Framework\", \"Ultradian Rhythms for Focus\",\n    \"Strategic Quitting\", \"The Law of Diminishing Returns\", \"Constructive Procrastination\",\n    \"Gamifying Your Studies\", \"The Protégé Effect\", \"Frictionless Environment Design\",\n    \"Stoic Journaling for Students\", \"The 1% Better Rule\", \"Curing TikTok Brain\",\n    \"Reading a Book a Week\", \"Memorization Palaces\", \"Mnemonic Devices\",\n    \"The Reticular Activating System\", \"Reverse Engineering Goals\", \"SMART Goals for Students\",\n    \"The WOOP Strategy\", \"Dealing with Academic Failure\", \"The Growth Mindset\",\n    \"Fixed vs Growth Mindset\", \"Neuroplasticity for Learning\", \"Circadian Rhythms and Studying\",\n    \"Caffeine Strategic Timing\", \"Hydration and Cognitive Function\", \"Cold Showers for Alertness\",\n    \"The Huberman Protocol\", \"Binaural Beats for Studying\", \"Lofi vs White Noise\",\n    \"Active Listening in Lectures\", \"The Socratic Method\", \"Critical Thinking Frameworks\",\n    \"Mental Models for Students\", \"The OODA Loop\", \"Pareto Principle in Research\",\n    \"Speed Reading Myths\", \"Subvocalization and Reading\", \"Visualizing Academic Success\",\n    \"The Halo Effect in Grading\", \"Overcoming Writer's Block\", \"Drafting vs Editing\",\n    \"Task Batching\", \"Context Switching Penalties\", \"The Maker vs Manager Schedule\",\n    \"Asynchronous Communication\", \"Setting Boundaries with Peers\", \"Navigating Group Projects\",\n    \"The Art of Saying No\", \"Micro-Habits for Students\", \"The Seinfeld Strategy\",\n    \"Don't Break the Chain\", \"Temptation Bundling\", \"Implementation Intentions\",\n    \"Habit Tracking Systems\", \"The Dunning-Kruger Effect\", \"Confirmation Bias in Research\",\n    \"First-Order vs Second-Order Thinking\", \"Inversion Problem Solving\", \"Occam's Razor for Students\",\n    \"Opportunity Cost in College\"\n];\n\nlet history = \"\";\nif (fs.existsSync(historyPath)) {\n    history = fs.readFileSync(historyPath, 'utf-8');\n}\n\n// Filter out any topic that already exists in your history.txt file\nlet availableTopics = topics.filter(topic => !history.includes(topic));\n\n// If you run out of fresh topics after 24 days, it resets the list automatically\nif (availableTopics.length === 0) {\n    availableTopics = topics;\n}\n\n// Pick one random, unused topic for today's Reel\nconst randomTopic = availableTopics[Math.floor(Math.random() * availableTopics.length)];\n\n// Pass this exact topic forward to the AI\nreturn [{ json: { assigned_topic: randomTopic } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        -352
+      ],
+      "id": "e3f31f1f-a74c-46e9-90f8-305815763f42",
+      "name": "Code in JavaScript1",
+      "retryOnFail": true,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v25.0/17841475507362376/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "video_url",
+              "value": "https://christie-approbative-genevieve.ngrok-free.dev/final_reel.mp4"
+            },
+            {
+              "name": "media_type",
+              "value": "REELS"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAWZBoauu8xIBRguZCtZCeE1ZCmmy9KZClKNTLcqvHEEPkGp32GwE8rwPaPUZBnaZAMLNS87RFzxKXR633PdsIA36Jn2ONB8XLo3ITrez28BmBTWmPkuqtN9vbe4kfAgoXFRSiu73XOvZAu5LrKm8jDfd05pY0H0ZCZAYRZCeWa156DQNVd6wdtQqRmtbyoVaCLd8ueLAZDZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -192,
+        -352
+      ],
+      "id": "016fa3b4-2fb2-4bd0-8017-2b08f42f69ec",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": 180
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -352
+      ],
+      "id": "e6353994-2462-433e-92c5-1032f2814c36",
+      "name": "Wait",
+      "webhookId": "52e2cabd-8bbe-4cdd-bb5a-d9d6a73483ac",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v25.0/17841475507362376/media_publish",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $('HTTP Request').item.json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "EAAWZBoauu8xIBRguZCtZCeE1ZCmmy9KZClKNTLcqvHEEPkGp32GwE8rwPaPUZBnaZAMLNS87RFzxKXR633PdsIA36Jn2ONB8XLo3ITrez28BmBTWmPkuqtN9vbe4kfAgoXFRSiu73XOvZAu5LrKm8jDfd05pY0H0ZCZAYRZCeWa156DQNVd6wdtQqRmtbyoVaCLd8ueLAZDZD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        176,
+        -352
+      ],
+      "id": "144440dc-3e55-4289-a416-127bbf2e2b28",
+      "name": "HTTP Request1",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent/output/final_reel.mp4",
+        "options": {
+          "dataPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -576,
+        -352
+      ],
+      "id": "dd85c150-5c16-444e-ae81-12ad301fb5d2",
+      "name": "Read/Write Files from Disk",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "video",
+        "operation": "upload",
+        "title": "={{ $('Code in JavaScript').first().json.title }}",
+        "options": {
+          "description": "={{ $('Code in JavaScript').first().json.caption }}",
+          "privacyStatus": "public"
+        }
+      },
+      "type": "n8n-nodes-base.youTube",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -352
+      ],
+      "id": "eb0eca5d-a9d5-4085-bd54-904d46063984",
+      "name": "Upload a video",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "uU7Tb86j6Lf18LFH",
+          "name": "YouTube account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "trigger-workflow-two",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1632,
+        -352
+      ],
+      "id": "1dfd225a-5bcc-43b8-adb7-3983807002af",
+      "name": "Webhook",
+      "webhookId": "7e691b62-9156-4b6e-aed1-5776fa466dca"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1424,
+        -352
+      ],
+      "id": "7c145dc2-936a-4640-bf1d-dedc3f0d07a5",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Upload a video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a video": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "13da8a9c-4a1e-43cb-81c5-aec5c516bda7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2aeabbad6373a81a0a3e1fe24525623f1ed31f8e287e198609827a14ff745d9a"
+  },
+  "nodeGroups": [],
+  "id": "IDN4cXGnMUYW9PgL",
+  "tags": []
+}
