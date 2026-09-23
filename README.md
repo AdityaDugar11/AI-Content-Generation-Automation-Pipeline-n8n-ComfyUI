@@ -1,80 +1,106 @@
-# AI Content Generation Automation Pipeline
+# n8n AI Content Workflows
 
-n8n workflows and ComfyUI graphs for generating AI images and short-form videos, preparing social content with Ollama, and publishing to Instagram and YouTube.
+This folder contains n8n workflow exports and ComfyUI graph exports for generating images and short videos, writing social copy with Ollama, and publishing to Instagram and YouTube.
 
-## What is included
+The JSON files are templates. They contain example account IDs, local paths, model names, and public URLs that must be reviewed before a workflow is enabled.
 
-| File | Purpose | Main dependencies |
-| --- | --- | --- |
-| `image generation.json` | Basic ComfyUI text-to-image graph using a checkpoint, KSampler, VAE decode, and image output | ComfyUI, compatible checkpoint |
-| `image generation with juggernaut.json` | Text-to-image graph configured for the Juggernaut checkpoint family | ComfyUI, Juggernaut checkpoint |
-| `ltx video .json` | LTX video generation graph with GGUF CLIP/UNet loaders and VHS video output | ComfyUI, LTX video models, VHS Video Combine nodes |
-| `Image Content Bot.json` | Scheduled content ideation, image generation, file handling, ImgBB upload, and Instagram publishing | n8n, Ollama, ComfyUI, ImgBB, Instagram Graph API |
-| `Instagram automation.json` | Creates an educational reel script with Ollama, processes a video, uploads it to YouTube, and publishes it to Instagram | n8n, Ollama, Instagram Graph API, YouTube credentials |
-| `ReelAgent V2 - Production.json` | Scheduled or webhook-driven reel production: topic selection, script/caption generation, ComfyUI rendering, file output, YouTube upload, and Instagram publishing | n8n, Ollama, ComfyUI, Instagram Graph API, YouTube credentials |
+## Contents
 
-## Architecture
+| File | Use it for | Runs in | Required services |
+| --- | --- | --- | --- |
+| `image generation.json` | Basic Stable Diffusion text-to-image graph | ComfyUI | Checkpoint model |
+| `image generation with juggernaut.json` | Juggernaut XL image generation graph | ComfyUI | Juggernaut checkpoint |
+| `ltx video .json` | LTX video generation with GGUF loaders | ComfyUI | LTX models and VHS Video Combine |
+| `Image Content Bot.json` | Scheduled idea, image generation, ImgBB upload, and Instagram image publishing | n8n | Ollama, ComfyUI, ImgBB, Meta Graph API |
+| `Instagram automation.json` | Ollama script generation, local video handling, YouTube upload, and Instagram publishing | n8n | Ollama, Meta Graph API, YouTube OAuth |
+| `ReelAgent V2 - Production.json` | Scheduled or webhook-driven reel generation, ComfyUI rendering, YouTube upload, and Instagram publishing | n8n | Ollama, ComfyUI, Meta Graph API, YouTube OAuth |
 
-The production workflows follow this general path:
+## How the pieces fit together
 
-1. A schedule or webhook starts the workflow.
-2. Ollama generates a topic, title, educational points, caption, and visual prompt.
-3. n8n sends a ComfyUI API prompt to `http://127.0.0.1:8188/prompt`.
-4. The workflow polls ComfyUI history until the generated asset is available.
-5. The asset is read from disk and optionally uploaded to a public URL provider.
-6. The workflow uploads to Instagram through the Meta Graph API and can upload the video to YouTube.
+The ComfyUI files are independent graph templates. Import and test them in ComfyUI first. The n8n production workflow then sends a prompt to ComfyUI, waits for the result, reads the generated file, and sends it to the publishing services.
 
-The standalone ComfyUI exports are graph templates. They are not n8n workflows and should be imported into ComfyUI separately.
+Typical automation flow:
+
+1. A schedule or webhook starts an n8n workflow.
+2. Ollama creates the topic, script, caption, and visual prompt.
+3. n8n submits a job to ComfyUI at `/prompt` and polls `/history`.
+4. n8n reads the generated file from disk.
+5. Instagram receives a public HTTPS media URL and caption.
+6. YouTube receives the video through the configured OAuth credential when that node is enabled.
 
 ## Requirements
 
-- n8n with permission to use HTTP Request, Code, Read/Write Files from Disk, Wait, Webhook, Schedule Trigger, Ollama, and YouTube nodes.
-- ComfyUI running locally with its API enabled, normally at `http://127.0.0.1:8188`.
-- Ollama running locally, normally at `http://127.0.0.1:11434`, with the model referenced by each Ollama node available.
-- ComfyUI models and custom nodes required by the selected graph, including the Juggernaut checkpoint or LTX/GGUF model files where applicable.
-- A Meta developer app with Instagram Graph API permissions and an Instagram professional account.
-- ImgBB API access for `Image Content Bot.json`.
-- YouTube OAuth credentials for the YouTube upload nodes.
-- A public HTTPS URL for Instagram video publishing. The exported workflows contain an example ngrok URL that must be replaced.
+- n8n with HTTP Request, Code, Read/Write Files from Disk, Wait, Webhook, Schedule Trigger, Ollama, and YouTube nodes.
+- ComfyUI with its API enabled, normally at `http://127.0.0.1:8188`.
+- Ollama, normally at `http://127.0.0.1:11434`, with a model suitable for the prompts in the workflow.
+- The ComfyUI models and custom nodes required by the selected graph.
+- A Meta developer app, an Instagram professional account, and the permissions required by the Instagram Graph API.
+- An ImgBB API key for `Image Content Bot.json`.
+- A YouTube OAuth credential for the two reel workflows.
+- A public HTTPS host for video files. Instagram cannot fetch `localhost`, private LAN addresses, or a local filesystem path.
 
-## Quick start
+## First-time setup
 
-### 1. Install and start ComfyUI
+### 1. Set up ComfyUI
 
-Start ComfyUI and verify these endpoints from the n8n host:
+Import one graph at a time into ComfyUI and run it manually before using n8n. The exported graphs reference these model files:
 
-```text
-GET  http://127.0.0.1:8188/history
-POST http://127.0.0.1:8188/prompt
-```
+| Graph | Model files or nodes to verify |
+| --- | --- |
+| `image generation.json` | `v1-5-pruned-emaonly.ckpt` |
+| `image generation with juggernaut.json` | `juggernautXL_juggXILightningByRD.safetensors` |
+| `ltx video .json` | `t5-v1_1-xxl-encoder-Q4_K_M.gguf`, `ltx-video-2b-v0.9.1-q4_k_m.gguf`, `ltx-video-vae.safetensors`, GGUF loader nodes, VHS Video Combine |
 
-Import one of the ComfyUI JSON graphs and confirm it runs by itself before connecting it to n8n.
+Model filenames are part of the graph. Either install matching files or change the loader values in ComfyUI.
 
-### 2. Install and configure Ollama
+### 2. Set up Ollama
 
-Start Ollama and pull the model required by the Ollama node. The model name is stored inside the n8n export, so review it before running the workflow.
+Start Ollama and confirm it responds from the machine running n8n. Review each Ollama node after import and set its model explicitly; the exports are not a portable model installation.
 
-### 3. Import the n8n workflows
+### 3. Import into n8n
 
-In n8n, choose **Workflows > Import from File** and import the desired JSON file. Configure the referenced credentials after import. Do not commit credentials or API tokens into workflow exports.
+In n8n, use **Workflows > Import from File** and import only the workflow you want to configure. Import the ComfyUI graphs into ComfyUI, not n8n.
 
-### 4. Update local paths and URLs
+After import, configure these n8n credentials:
 
-Search the imported workflow for these values and replace them for your environment:
+| Credential | Used by |
+| --- | --- |
+| Ollama account | `Instagram automation.json`, `ReelAgent V2 - Production.json` |
+| YouTube account | `Instagram automation.json`, `ReelAgent V2 - Production.json` |
+| Meta access token | HTTP Request nodes that create and publish Instagram media |
+| ImgBB API key | `Image Content Bot.json` |
 
-- ComfyUI output directory paths in Read/Write Files from Disk and Code nodes.
-- The example public video URL used by Instagram publishing.
-- The Instagram account ID in Meta Graph API URLs.
-- The ImgBB API key and Meta access token, stored as n8n credentials or secure variables.
-- The Ollama and ComfyUI host URLs if those services are not on the same machine as n8n.
+The exported HTTP nodes currently include placeholder token values. Replace them with n8n credentials or protected expressions before testing.
 
-### 5. Test manually
+### 4. Replace environment-specific values
 
-Run each workflow manually with a test topic. Confirm that the file is created, the public media URL is reachable, and the Meta media container reaches a publishable state before enabling a schedule.
+Search the imported workflow for and replace:
 
-## Trigger inputs
+- `17841475507362376`: the example Instagram professional account ID.
+- `Your_facebook_access_Token`: the Meta access token placeholder.
+- `christie-approbative-genevieve.ngrok-free.dev`: an example tunnel hostname that is not part of this repository.
+- `/mnt/windows/Users/adity/Documents/Aditya/Agents/n8n/ReelAgent`: the original machine's output directory.
+- `final_reel.mp4` and `final_reel_v2.mp4`: output names, if you choose different names.
+- `http://127.0.0.1:8188` and `http://127.0.0.1:11434`: service URLs when n8n runs in another container or host.
 
-The webhook-based workflows expect a topic field named `assigned_topic` in the incoming JSON. Example:
+n8n and ComfyUI must be able to see the same output directory. With Docker, mount that directory into both containers and use the container path in the Read/Write Files from Disk nodes.
+
+### 5. Test before scheduling
+
+Run manually and verify each stage in order:
+
+1. Ollama returns parseable content.
+2. ComfyUI returns a prompt/job ID and writes the expected file.
+3. n8n can read that file.
+4. The public media URL returns the media without authentication.
+5. Meta creates a media container and its status becomes publishable.
+6. YouTube upload succeeds if enabled.
+
+Only enable the Schedule Trigger after a manual run succeeds.
+
+## Webhook inputs
+
+The webhook branches use `assigned_topic`. Example request body:
 
 ```json
 {
@@ -82,29 +108,41 @@ The webhook-based workflows expect a topic field named `assigned_topic` in the i
 }
 ```
 
-The scheduled branches generate or select the topic internally. Review the Code nodes if your input field names or content niche differ.
+The webhook paths in the exports are:
 
-## Instagram publishing notes
+| Workflow | Path |
+| --- | --- |
+| `Instagram automation.json` | `trigger-workflow-two` |
+| `ReelAgent V2 - Production.json` | `trigger-reel-production` |
 
-Instagram publishing uses the Meta Graph API in two stages:
+The scheduled branches choose a topic internally. Treat webhook URLs as private until authentication and rate limiting are configured.
 
-1. Create a media container with the media URL and caption.
-2. Publish the returned container ID after the media is available.
+## Instagram and public media
 
-The video must be reachable from Meta over public HTTPS. Localhost paths and private LAN URLs will not work. The account ID, API version, permissions, token, and media URL all need to match your Meta app configuration.
+Instagram publishing is a two-step Meta Graph API operation: create a media container, then publish its returned container ID. For video, Meta fetches the media from the URL supplied to the container request. The URL must be public HTTPS, stable during processing, and return the correct content type. A temporary tunnel is suitable for testing only; use durable storage or a controlled media host for production.
 
-## File and model conventions
+## Repository and secret hygiene
 
-The workflows currently reference Windows-style and mounted filesystem paths from the original development environment. Treat those paths as examples. Set the ComfyUI output directory and n8n file permissions explicitly for the machine running the services.
+`.gitignore` excludes local environment files, n8n data, generated media, logs, backups, and machine-specific workflow copies. Keep real credentials in n8n's credential store or a secret manager. `.env.example` is documentation only; these exported workflows do not automatically read it.
 
-ComfyUI graph JSON files may depend on exact model filenames, node versions, and custom-node packages. If a graph imports with missing nodes or models, install the matching dependency or update the loader settings in ComfyUI.
+Before pushing changes:
 
-## Security
+```bash
+git status --short
+git diff --check
+rg -n 'access_token|api[_-]?key|Bearer |ngrok|/home/|/mnt/|[A-Za-z]:\\\\' --glob '*.json' .
+```
 
-- Keep Meta, ImgBB, Ollama, and YouTube credentials in n8n credentials or environment variables.
-- Rotate any token that has been exposed outside n8n.
-- Restrict webhook access and add authentication before exposing n8n to the internet.
-- Review Code nodes before enabling schedules because they read and write files on the n8n host.
+Review every match. Placeholder values and documented example paths are expected; real tokens, private URLs, and personal filesystem paths are not.
+
+## Troubleshooting
+
+- **Missing ComfyUI node:** install the custom-node package used by the graph, then restart ComfyUI.
+- **Missing model:** update the loader filename or place the exact model in the expected ComfyUI models directory.
+- **n8n cannot read the file:** use a path visible inside the n8n runtime and grant the n8n process read access.
+- **Instagram rejects the media:** verify public HTTPS access, media format, account permissions, token validity, and the account ID.
+- **Ollama connection fails:** test the Ollama URL from the n8n runtime, not only from the host shell.
+- **Webhook works locally but not remotely:** configure n8n's public URL and a reverse proxy or tunnel with authentication.
 
 ## License
 

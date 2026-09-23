@@ -1,0 +1,35 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+credentials/
+
+# Local n8n state and exports
+.n8n/
+n8n-data/
+*.backup.json
+*-local.json
+*-configured.json
+
+# Generated media, logs, and temporary files
+output/
+outputs/
+media/
+logs/
+*.log
+*.mp4
+*.webm
+*.mov
+*.png
+*.jpg
+*.jpeg
+*.webp
+
+# Local tooling and OS files
+.cache/
+.DS_Store
+Thumbs.db
+*.swp
